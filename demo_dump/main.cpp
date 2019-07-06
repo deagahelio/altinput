@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include <Windows.h>
+#include <glob.h>
 
 const char *grades[] = {
 	"9", "8", "7", "6", "5", "4", "3", "2", "1",
@@ -34,8 +34,7 @@ struct demo_info {
 template<typename T>
 void read_demo(const char *filename, std::insert_iterator<T> inserter)
 {
-	std::string full_path("demos\\");
-	full_path += filename;
+	std::string full_path(filename);
 
 	std::ifstream input(full_path);
 
@@ -74,16 +73,16 @@ int main()
 {
 	std::vector<demo_info> demos;
 
-	WIN32_FIND_DATA find_data;
-	const auto find_handle = FindFirstFile("demos\\*.inf", &find_data);
-	if (find_handle == INVALID_HANDLE_VALUE)
+	glob_t glob_buff;
+	int success = glob("./demos/*.inf", 0, NULL, &glob_buff);
+	if (glob_buff.gl_pathc == 0 || success != 0)
 		return 0;
-
-	do {
+	
+	for (int i = 0; i < glob_buff.gl_pathc; i++) {
 		read_demo(
-				find_data.cFileName,
+				glob_buff.gl_pathv[i],
 				std::inserter(demos, demos.end()));
-	} while (FindNextFile(find_handle, &find_data));
+	}
 
 	std::sort(demos.begin(), demos.end(), [](demo_info &a, demo_info &b)
 	{
@@ -133,6 +132,6 @@ int main()
 		std::cout << std::endl;
 	}
 
-	FindClose(find_handle);
+	globfree(&glob_buff);
 	return 0;
 }
